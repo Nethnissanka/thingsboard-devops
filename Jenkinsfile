@@ -2,14 +2,15 @@ pipeline {
     agent any
 
     stages {
-        stage('Check Current Version') {
+     
+        stage('Check Installed Version') {
             steps {
                 script {
-                    def currentVersion = sh(
-                        script: 'rpm -q --qf "%{VERSION}" thingsboard || echo "package thingsboard is not installed"',
+                    env.CURRENT_VERSION = sh(
+                        script: 'rpm -q --qf "%{VERSION}" thingsboard || echo "not-installed"',
                         returnStdout: true
                     ).trim()
-                    echo "🔍 Currently Installed ThingsBoard Version: ${currentVersion}"
+                    echo "📦 Current Installed Version: ${env.CURRENT_VERSION}"
                 }
             }
         }
@@ -17,14 +18,30 @@ pipeline {
         stage('Fetch Latest GitHub Version') {
             steps {
                 script {
-                    def apiOutput = sh(
-                        script: "curl -s https://api.github.com/repos/thingsboard/thingsboard/releases/latest",
-                        returnStdout: true
-                    ).trim()
+                    def json = sh(script: "curl -s https://api.github.com/repos/thingsboard/thingsboard/releases/latest", returnStdout: true)
+                    def matcher = json =~ /"tag_name":\s*"v(.*?)"/
+                    env.LATEST_VERSION = matcher ? matcher[0][1] : "unknown"
 
-                    def matcher = apiOutput =~ /"tag_name":\s*"v(.*?)"/
-                    def latestVersion = matcher ? matcher[0][1] : "unknown"
-                    echo "📦 Latest Available Version on GitHub: ${latestVersion}"
+                    if (env.LATEST_VERSION == "unknown") {
+                        error("❌ Failed to fetch latest version from GitHub")
+                    }
+                    echo "🌐 Latest Available Version: ${env.LATEST_VERSION}"
+                }
+            }
+        }
+
+        stage('Compare Versions') {
+            steps {
+                script {
+                    if (env.CURRENT_VERSION == "not-installed") {
+                        error("❌ ThingsBoard is not installed on this machine.")
+                    }
+                    if (env.CURRENT_VERSION == env.LATEST_VERSION) {
+                        currentBuild.result = 'SUCCESS'
+                        echo "✅ ThingsBoard is already up-to-date (v${env.CURRENT_VERSION})"
+                        return
+                    }
+                    echo "⬆️ Upgrade required: ${env.CURRENT_VERSION} → ${env.LATEST_VERSION}"
                 }
             }
         }
