@@ -6,7 +6,7 @@ pipeline {
             steps {
                 script {
                     def currentVersion = sh(
-                        script: 'rpm -q --qf "%{VERSION}" thingsboard || echo "not-installed"',
+                        script: 'rpm -q --qf "%{VERSION}" thingsboard || echo "package thingsboard is not installed"',
                         returnStdout: true
                     ).trim()
                     echo "🔍 Currently Installed ThingsBoard Version: ${currentVersion}"
