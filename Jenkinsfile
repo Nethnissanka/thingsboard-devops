@@ -66,8 +66,6 @@ pipeline {
             steps {
                 script {
                     sh """
-                        sudo mkdir -p ${env.BACKUP_DIR}/conf-${env.CURRENT_VERSION}
-                        sudo cp -a /etc/thingsboard/conf ${env.BACKUP_DIR}/conf-${env.CURRENT_VERSION}
                         sudo systemctl stop thingsboard
                     """
                     echo "🛑 Service stopped & config backed up"
