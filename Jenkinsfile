@@ -59,23 +59,60 @@ pipeline {
                         error '❌ ThingsBoard is not installed on this node.'
                     }
                     echo "🔍 Current version: ${env.CURRENT_VERSION}"
-                    echo "🔍 Latest version: ${env.LATEST_VERSION}"
+                    echo "🔍 New version: ${env.LATEST_VERSION}"
                     
 
                     if (env.CURRENT_VERSION == env.LATEST_VERSION) {
-                        currentBuild.result = 'SUCCESS'
-
-                        // No need to proceed further, we are already on the latest version
                         echo "✅ ThingsBoard is already up-to-date (v${env.CURRENT_VERSION})"
-                        echo '✅ No upgrade needed, exiting pipeline.'
-                        return
+                        env.UPGRADE_REQUIRED = "false"
+                    } else {
+                        echo "⬆️  Upgrade required: ${env.CURRENT_VERSION} ➜ ${env.LATEST_VERSION}"
+                        env.UPGRADE_REQUIRED = "true"
                     }
-                    echo "⬆️  Upgrade required: ${env.CURRENT_VERSION} ➜ ${env.LATEST_VERSION}"
                 }
             }
         }
 
+        stage('Skip Upgrade') {
+            when {
+                expression { env.UPGRADE_REQUIRED == "false" }
+            }
+            steps {
+                echo "✅ Skipping upgrade — ThingsBoard already at v${env.CURRENT_VERSION}"
+                echo '✅ No upgrade needed, exiting pipeline.'
+            }
+        }
+
+
+        // stage('Compare Versions & Decide') {
+        //     steps {
+        //         script {
+        //             echo '🔍 Comparing installed version with latest version …'
+
+        //             if (env.CURRENT_VERSION == 'package thingsboard is not installed') {
+        //                 error '❌ ThingsBoard is not installed on this node.'
+        //             }
+        //             echo "🔍 Current version: ${env.CURRENT_VERSION}"
+        //             echo "🔍 Latest version: ${env.LATEST_VERSION}"
+                    
+
+        //             if (env.CURRENT_VERSION == env.LATEST_VERSION) {
+        //                 currentBuild.result = 'SUCCESS'
+
+        //                 // No need to proceed further, we are already on the latest version
+        //                 echo "✅ ThingsBoard is already up-to-date (v${env.CURRENT_VERSION})"
+        //                 echo '✅ No upgrade needed, exiting pipeline.'
+        //                 return
+        //             }
+        //             echo "⬆️  Upgrade required: ${env.CURRENT_VERSION} ➜ ${env.LATEST_VERSION}"
+        //         }
+        //     }
+        // }
+
         stage('Download RPM') {
+            when {
+                expression { env.UPGRADE_REQUIRED == "true" }
+            }
             steps {
                 script {
                     def rpmUrl = env.PACKAGE_URL_TEMPLATE
@@ -93,6 +130,9 @@ pipeline {
         }
 
         stage('Backup & Stop Service') {
+            when {
+                expression { env.UPGRADE_REQUIRED == "true" }
+            }
             steps {
                 script {
                     echo '🔒 Backing up configuration …'
@@ -108,6 +148,9 @@ pipeline {
         }
 
         stage('Upgrade ThingsBoard') {
+            when {
+                expression { env.UPGRADE_REQUIRED == "true" }
+            }
             steps {
                 script {
                     echo "🔄 Performing upgrade to v${env.LATEST_VERSION}"
@@ -121,6 +164,9 @@ pipeline {
         }
 
         stage('Verify Upgrade') {
+            when {
+                expression { env.UPGRADE_REQUIRED == "true" }
+            }
             steps {
                 script {
                     echo '🔍 Verifying service health …'
@@ -146,8 +192,8 @@ pipeline {
 
         success {
             script {
-                if (env.CURRENT_VERSION == env.LATEST_VERSION) {
-                    echo "✅ No upgrade needed. ThingsBoard is already at version ${env.CURRENT_VERSION}"
+                if (env.UPGRADE_REQUIRED == "false") {
+                    echo "✅ No upgrade was needed — ThingsBoard remains at v${env.CURRENT_VERSION}"
                 } else {
                 echo "🎉 Upgrade successful: ${env.CURRENT_VERSION} ➜ ${env.LATEST_VERSION}"
                 echo "✅ ThingsBoard upgraded to v${env.LATEST_VERSION} successfully."
