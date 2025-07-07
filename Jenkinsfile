@@ -46,4 +46,10 @@ pipeline {
             }
         }
     }
+post {
+        success {
+            echo "🎉 ThingsBoard upgraded successfully from ${env.CURRENT_VERSION} to ${env.LATEST_VERSION}"
+        }
+}
+
 }
