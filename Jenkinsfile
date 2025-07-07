@@ -2,9 +2,7 @@ pipeline {
     agent any
 
     environment {
-        // URL template we turn into the real download link
         PACKAGE_URL_TEMPLATE = 'https://github.com/thingsboard/thingsboard/releases/download/vVERSION/thingsboard-VERSION.rpm'
-        // Where we store one tiny file OR a full folder backup (we do both here)
         BACKUP_DIR          = '/var/backups/thingsboard'
     }
 
@@ -129,7 +127,7 @@ pipeline {
             }
         }
 
-        stage('Backup & Stop Service') {
+        stage('Backup & Stop Thingsboard Service') {
             when {
                 expression { env.UPGRADE_REQUIRED == "true" }
             }
@@ -195,8 +193,7 @@ pipeline {
                 if (env.UPGRADE_REQUIRED == "false") {
                     echo "✅ No upgrade was needed — ThingsBoard remains at v${env.CURRENT_VERSION}"
                 } else {
-                echo "🎉 Upgrade successful: ${env.CURRENT_VERSION} ➜ ${env.LATEST_VERSION}"
-                echo "✅ ThingsBoard upgraded to v${env.LATEST_VERSION} successfully."
+                echo "🎉✅ Upgrade successful: ${env.CURRENT_VERSION} ➜ ${env.LATEST_VERSION}"
                 }
             }
         }
