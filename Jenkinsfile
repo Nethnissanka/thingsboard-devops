@@ -45,6 +45,26 @@ pipeline {
                 }
             }
         }
+
+	stage('Verify Upgrade') {
+            steps {
+                script {
+                    def versionCheck = sh(script: 'rpm -q --qf "%{VERSION}" thingsboard', returnStdout: true).trim()
+                    def status = sh(script: 'systemctl is-active thingsboard', returnStdout: true).trim()
+                    def apiCheck = sh(script: 'curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/login', returnStdout: true).trim()
+
+                    echo "🔎 Version: ${versionCheck}"
+                    echo "🔎 Service Status: ${status}"
+                    echo "🔎 API Check Status: ${apiCheck}"
+
+                    if (versionCheck != env.CURRENT_VERSION || status != "active" || apiCheck != "200") {
+                        error("❌ Upgrade verification failed")
+                    }
+                    echo "✅ Upgrade to v${env.LATEST_VERSION} verified successfully"
+		    echo "Thingsboard is in {env.CURRENT_VERSION}"
+                }
+            }
+        }
     }
 post {
         success {
