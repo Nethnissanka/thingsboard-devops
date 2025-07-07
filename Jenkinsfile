@@ -23,7 +23,7 @@ pipeline {
             }
         }
 
-        stage('Fetch Latest GitHub Version') {
+        /* stage('Fetch Latest GitHub Version') {
             steps {
                 script {
                     echo '🌐 Fetching latest release version from GitHub …'
@@ -35,6 +35,17 @@ pipeline {
                         error '❌ Could not parse latest version from GitHub!'
                     }
                     echo "🌐 Latest available version: ${env.LATEST_VERSION}"
+                }
+            }
+        } */
+
+        stage('Set Manual Version') {
+            steps {
+                script {
+                    // Manually set the version instead of fetching from GitHub
+                    echo '🔧 Manually setting ThingsBoard version to 3.9.1 …'
+                    env.LATEST_VERSION = '3.9.1'
+                    echo "✅ Manually set ThingsBoard version: ${env.LATEST_VERSION}"
                 }
             }
         }
@@ -100,7 +111,11 @@ pipeline {
             steps {
                 script {
                     echo "🔄 Performing upgrade to v${env.LATEST_VERSION}"
-                    sh 'sudo systemctl start thingsboard'
+                    sh """
+                        sudo rpm -Uvh thingsboard-${env.LATEST_VERSION}.rpm
+                        sudo /usr/share/thingsboard/bin/install/upgrade.sh --fromVersion=${env.CURRENT_VERSION}
+                        sudo systemctl start thingsboard
+                    """
                 }
             }
         }
@@ -111,20 +126,20 @@ pipeline {
                     echo '🔍 Verifying service health …'
                     def ver   = sh(script: 'rpm -q --qf "%{VERSION}" thingsboard', returnStdout:true).trim()
                     def stat  = sh(script: 'systemctl is-active thingsboard', returnStdout:true).trim()
-                  //  def http  = sh(script: 'curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/login', returnStdout:true).trim()
+                    // def http  = sh(script: 'curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/login', returnStdout:true).trim()
 
                     echo "🔎 Installed version : ${ver}"
                     echo "🔎 Systemd status    : ${stat}"
-                   // echo "🔎 HTTP /login code  : ${http}"
+                    // echo "🔎 HTTP /login code  : ${http}"
 
-                    if (ver != env.CURRENT_VERSION || stat != 'active') {
+                    if (ver != env.LATEST_VERSION || stat != 'active') {
+                    //if (ver != env.LATEST_VERSION || stat != 'active' || http != '200') {
                         error '❌ Verification failed — triggering rollback.'
                     }
                     echo '✅ Upgrade verified!'
                 }
             }
         }
-
     }
 
     post {
@@ -175,11 +190,12 @@ pipeline {
                 /* verify rollback */
                 def ver   = sh(script:'rpm -q --qf "%{VERSION}" thingsboard', returnStdout:true).trim()
                 def stat  = sh(script:'systemctl is-active thingsboard', returnStdout:true).trim()
-               //  def http  = sh(script:'curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/login', returnStdout:true).trim()
+                // def http  = sh(script:'curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/login', returnStdout:true).trim()
 
                 echo "🔄 After rollback -> version: ${ver}, status: ${stat}"
 
-                if (ver != env.CURRENT_VERSION || stat != 'active') {
+                if (ver != env.LATEST_VERSION || stat != 'active') {
+                // if (ver != env.LATEST_VERSION || stat != 'active' || http != '200') {
                     error '❌ Rollback verification failed — manual intervention required.'
                 }
                 echo "✅ Rolled back to v${env.CURRENT_VERSION} successfully."
