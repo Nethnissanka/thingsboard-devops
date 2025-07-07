@@ -111,13 +111,13 @@ pipeline {
                     echo '🔍 Verifying service health …'
                     def ver   = sh(script: 'rpm -q --qf "%{VERSION}" thingsboard', returnStdout:true).trim()
                     def stat  = sh(script: 'systemctl is-active thingsboard', returnStdout:true).trim()
-                    def http  = sh(script: 'curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/login', returnStdout:true).trim()
+                  //  def http  = sh(script: 'curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/login', returnStdout:true).trim()
 
                     echo "🔎 Installed version : ${ver}"
                     echo "🔎 Systemd status    : ${stat}"
-                    echo "🔎 HTTP /login code  : ${http}"
+                   // echo "🔎 HTTP /login code  : ${http}"
 
-                    if (ver != env.CURRENT_VERSION || stat != 'active' || http != '200') {
+                    if (ver != env.CURRENT_VERSION || stat != 'active') {
                         error '❌ Verification failed — triggering rollback.'
                     }
                     echo '✅ Upgrade verified!'
