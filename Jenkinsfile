@@ -46,6 +46,18 @@ pipeline {
             }
         }
 
+
+        stage('Download Package') {
+            steps {
+                script {
+                    def rpmUrl = env.PACKAGE_URL_TEMPLATE.replaceAll("VERSION", env.LATEST_VERSION)
+                    echo "📥 Downloading package from: ${rpmUrl}"
+                    sh "wget -q ${rpmUrl} -O thingsboard-${env.LATEST_VERSION}.rpm"
+                }
+            }
+        }
+
+
 	stage('Verify Upgrade') {
             steps {
                 script {
