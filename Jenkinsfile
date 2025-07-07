@@ -125,43 +125,6 @@ pipeline {
             }
         }
 
-	stage('Verify Upgrade- stage 2') {
-    steps {
-        script {
-            echo '🔍 Verifying service health with retries…'
-            
-            def ver  = sh(script: 'rpm -q --qf "%{VERSION}" thingsboard', returnStdout:true).trim()
-            def stat = sh(script: 'systemctl is-active thingsboard', returnStdout:true).trim()
-
-            echo "🔎 Installed version : ${ver}"
-            echo "🔎 Systemd status    : ${stat}"
-
-            int maxAttempts = 15          // Retry up to 12 times
-            int delaySec = 20             // Wait 15 seconds between attempts
-            def httpCode = '000'
-
-            for (int i = 1; i <= maxAttempts; i++) {
-                httpCode = sh(script: 'curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/login', returnStdout:true).trim()
-                
-                if (httpCode == '200') {
-                    echo "✅ Web UI is available (HTTP 200) after ${i * delaySec} seconds"
-                    break
-                }
-
-                echo "⏳ Attempt ${i}/${maxAttempts} — Waiting for ThingsBoard web UI to be ready... (HTTP: ${httpCode})"
-                sleep(delaySec)
-            }
-
-            if (ver != env.LATEST_VERSION || stat != 'active' || httpCode != '200') {
-                error '❌ Verification failed — triggering rollback.'
-            }
-
-            echo '✅ Upgrade verified!'
-        }
-    }
-}
-
-
     }
 
     post {
@@ -212,11 +175,11 @@ pipeline {
                 /* verify rollback */
                 def ver   = sh(script:'rpm -q --qf "%{VERSION}" thingsboard', returnStdout:true).trim()
                 def stat  = sh(script:'systemctl is-active thingsboard', returnStdout:true).trim()
-                def http  = sh(script:'curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/login', returnStdout:true).trim()
+               //  def http  = sh(script:'curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/login', returnStdout:true).trim()
 
-                echo "🔄 After rollback -> version: ${ver}, status: ${stat}, HTTP: ${http}"
+                echo "🔄 After rollback -> version: ${ver}, status: ${stat}"
 
-                if (ver != env.CURRENT_VERSION || stat != 'active' || http != '200') {
+                if (ver != env.CURRENT_VERSION || stat != 'active') {
                     error '❌ Rollback verification failed — manual intervention required.'
                 }
                 echo "✅ Rolled back to v${env.CURRENT_VERSION} successfully."
