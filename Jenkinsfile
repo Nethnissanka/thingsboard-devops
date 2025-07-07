@@ -1,21 +1,24 @@
 pipeline {
     agent any
 
- environment {
-        PACKAGE_URL_TEMPLATE = "https://github.com/thingsboard/thingsboard/releases/download/vVERSION/thingsboard-VERSION.rpm"
-        BACKUP_DIR = "/var/backups/thingsboard"
+    environment {
+        // URL template we turn into the real download link
+        PACKAGE_URL_TEMPLATE = 'https://github.com/thingsboard/thingsboard/releases/download/vVERSION/thingsboard-VERSION.rpm'
+        // Where we store one tiny file OR a full folder backup (we do both here)
+        BACKUP_DIR          = '/var/backups/thingsboard'
     }
 
     stages {
-     
-        stage('Check Installed Version') {
+
+        stage('Check Installed Version of ThingsBoard') {
             steps {
                 script {
+                    echo '🔍 Detecting current installed version …'
                     env.CURRENT_VERSION = sh(
-                        script: 'rpm -q --qf "%{VERSION}" thingsboard || echo "not-installed"',
+                        script: 'rpm -q --qf "%{VERSION}" thingsboard || echo "package thingsboard is not installed"',
                         returnStdout: true
                     ).trim()
-                    echo "📦 Current Installed Version: ${env.CURRENT_VERSION}"
+                    echo "📦 Current version: ${env.CURRENT_VERSION}"
                 }
             }
         }
@@ -23,82 +26,164 @@ pipeline {
         stage('Fetch Latest GitHub Version') {
             steps {
                 script {
-                    def json = sh(script: "curl -s https://api.github.com/repos/thingsboard/thingsboard/releases/latest", returnStdout: true)
-                    def matcher = json =~ /"tag_name":\s*"v(.*?)"/
-                    env.LATEST_VERSION = matcher ? matcher[0][1] : "unknown"
+                    echo '🌐 Fetching latest release version from GitHub …'
+                    def json    = sh(script: 'curl -s https://api.github.com/repos/thingsboard/thingsboard/releases/latest', returnStdout: true)
+                    def matcher = json =~ /"tag_name":\s*"v([0-9.]+)"/
+                    env.LATEST_VERSION = matcher ? matcher[0][1] : 'unknown'
 
-                    if (env.LATEST_VERSION == "unknown") {
-                        error("❌ Failed to fetch latest version from GitHub")
+                    if (env.LATEST_VERSION == 'unknown') {
+                        error '❌ Could not parse latest version from GitHub!'
                     }
-                    echo "🌐 Latest Available Version: ${env.LATEST_VERSION}"
+                    echo "🌐 Latest available version: ${env.LATEST_VERSION}"
                 }
             }
         }
 
-        stage('Compare Versions') {
+        stage('Compare Versions & Decide') {
             steps {
                 script {
-                    if (env.CURRENT_VERSION == "not-installed") {
-                        error("❌ ThingsBoard is not installed on this machine.")
+                    echo '🔍 Comparing installed version with latest version …'
+
+                    if (env.CURRENT_VERSION == 'package thingsboard is not installed') {
+                        error '❌ ThingsBoard is not installed on this node.'
                     }
+                    echo "🔍 Current version: ${env.CURRENT_VERSION}"
+                    echo "🔍 Latest version: ${env.LATEST_VERSION}"
+                    
+
                     if (env.CURRENT_VERSION == env.LATEST_VERSION) {
                         currentBuild.result = 'SUCCESS'
+
+                        // No need to proceed further, we are already on the latest version
                         echo "✅ ThingsBoard is already up-to-date (v${env.CURRENT_VERSION})"
+                        echo '✅ No upgrade needed, exiting pipeline.'
                         return
                     }
-                    echo "⬆️ Upgrade required: ${env.CURRENT_VERSION} → ${env.LATEST_VERSION}"
+                    echo "⬆️  Upgrade required: ${env.CURRENT_VERSION} ➜ ${env.LATEST_VERSION}"
                 }
             }
         }
 
-
-        stage('Download Package') {
+        stage('Download RPM') {
             steps {
                 script {
-                    def rpmUrl = env.PACKAGE_URL_TEMPLATE.replaceAll("VERSION", env.LATEST_VERSION)
-                    echo "📥 Downloading package from: ${rpmUrl}"
+                    def rpmUrl = env.PACKAGE_URL_TEMPLATE
+                                    .replaceAll('VERSION', env.LATEST_VERSION)
+
+                    echo "📥 Downloading RPM: ${rpmUrl}"
                     sh "wget -q ${rpmUrl} -O thingsboard-${env.LATEST_VERSION}.rpm"
-                }
-            }
-        }
 
-	stage('Backup & Stop Service') {
-            steps {
-                script {
-                    sh """
-                        sudo systemctl stop thingsboard
-                    """
-                    echo "🛑 Service stopped & config backed up"
-                    
-                }
-            }
-        }
-
-
-	stage('Verify Upgrade') {
-            steps {
-                script {
-                    def versionCheck = sh(script: 'rpm -q --qf "%{VERSION}" thingsboard', returnStdout: true).trim()
-                    def status = sh(script: 'systemctl is-active thingsboard', returnStdout: true).trim()
-                    def apiCheck = sh(script: 'curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/login', returnStdout: true).trim()
-
-                    echo "🔎 Version: ${versionCheck}"
-                    echo "🔎 Service Status: ${status}"
-                    echo "🔎 API Check Status: ${apiCheck}"
-
-                    if (versionCheck != env.CURRENT_VERSION || status != "active" || apiCheck != "200") {
-                        error("❌ Upgrade verification failed")
+                    if (!fileExists("thingsboard-${env.LATEST_VERSION}.rpm")) {
+                        error '❌ RPM download failed or file missing!'
                     }
-                    echo "✅ Upgrade to v${env.LATEST_VERSION} verified successfully"
-		    echo "Thingsboard is in ${env.CURRENT_VERSION}"
+                    sh 'ls -lh thingsboard-*.rpm'
+                }
+            }
+        }
+
+        stage('Backup & Stop Service') {
+            steps {
+                script {
+                    echo '🔒 Backing up configuration …'
+                    sh """
+                        sudo mkdir -p ${env.BACKUP_DIR}
+                        sudo cp -a /etc/thingsboard/conf/thingsboard.conf ${env.BACKUP_DIR}/thingsboard-${env.CURRENT_VERSION}.conf
+                        sudo cp -a /etc/thingsboard/conf       ${env.BACKUP_DIR}/conf-${env.CURRENT_VERSION} || true
+                    """
+                    echo '🛑 Stopping ThingsBoard service …'
+                    sh 'sudo systemctl stop thingsboard'
+                }
+            }
+        }
+
+        stage('Upgrade ThingsBoard') {
+            steps {
+                script {
+                    echo "🔄 Performing upgrade to v${env.LATEST_VERSION}"
+                    sh 'sudo systemctl start thingsboard'
+                }
+            }
+        }
+
+        stage('Verify Upgrade') {
+            steps {
+                script {
+                    echo '🔍 Verifying service health …'
+                    def ver   = sh(script: 'rpm -q --qf "%{VERSION}" thingsboard', returnStdout:true).trim()
+                    def stat  = sh(script: 'systemctl is-active thingsboard', returnStdout:true).trim()
+                    def http  = sh(script: 'curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/login', returnStdout:true).trim()
+
+                    echo "🔎 Installed version : ${ver}"
+                    echo "🔎 Systemd status    : ${stat}"
+                    echo "🔎 HTTP /login code  : ${http}"
+
+                    if (ver != env.CURRENT_VERSION || stat != 'active' || http != '200') {
+                        error '❌ Verification failed — triggering rollback.'
+                    }
+                    echo '✅ Upgrade verified!'
                 }
             }
         }
     }
-post {
+
+    post {
+
         success {
-            echo "🎉 ThingsBoard upgraded successfully from ${env.CURRENT_VERSION} to ${env.LATEST_VERSION}"
+            script {
+                if (env.CURRENT_VERSION == env.LATEST_VERSION) {
+                    echo "✅ No upgrade needed. ThingsBoard is already at version ${env.CURRENT_VERSION}"
+                } else {
+                echo "🎉 Upgrade successful: ${env.CURRENT_VERSION} ➜ ${env.LATEST_VERSION}"
+                echo "✅ ThingsBoard upgraded to v${env.LATEST_VERSION} successfully."
+                }
+            }
         }
+
+        unstable {
+            echo '⚠️  Build marked unstable. Review logs.'
+        }
+
+        failure {
+            echo '⚠️  Upgrade failed, attempting rollback …'
+            script {
+                if (env.CURRENT_VERSION == 'package thingsboard is not installed') {
+                    echo '❌ No previous install found — cannot rollback.'
+                    return
+                }
+
+                def confBackupFile = "${env.BACKUP_DIR}/thingsboard-${env.CURRENT_VERSION}.conf"
+                def dirBackup      = "${env.BACKUP_DIR}/conf-${env.CURRENT_VERSION}"
+
+                if (!fileExists(confBackupFile) && !fileExists(dirBackup)) {
+                    error "❌ No backup found — rollback impossible."
+                }
+
+                sh 'sudo systemctl stop thingsboard || true'
+
+                if (fileExists(dirBackup)) {
+                    sh """
+                        sudo rm -rf /etc/thingsboard/conf
+                        sudo cp -a ${dirBackup} /etc/thingsboard/conf
+                    """
+                } else {
+                    sh "sudo cp -a ${confBackupFile} /etc/thingsboard/conf/thingsboard.conf"
+                }
+
+                sh 'sudo systemctl start thingsboard'
+
+                /* verify rollback */
+                def ver   = sh(script:'rpm -q --qf "%{VERSION}" thingsboard', returnStdout:true).trim()
+                def stat  = sh(script:'systemctl is-active thingsboard', returnStdout:true).trim()
+                def http  = sh(script:'curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/login', returnStdout:true).trim()
+
+                echo "🔄 After rollback -> version: ${ver}, status: ${stat}, HTTP: ${http}"
+
+                if (ver != env.CURRENT_VERSION || stat != 'active' || http != '200') {
+                    error '❌ Rollback verification failed — manual intervention required.'
+                }
+                echo "✅ Rolled back to v${env.CURRENT_VERSION} successfully."
+            }
+        }
+    }
 }
 
-}
