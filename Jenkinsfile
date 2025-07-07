@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+ environment {
+        PACKAGE_URL_TEMPLATE = "https://github.com/thingsboard/thingsboard/releases/download/vVERSION/thingsboard-VERSION.rpm"
+        BACKUP_DIR = "/var/backups/thingsboard"
+    }
+
     stages {
      
         stage('Check Installed Version') {
