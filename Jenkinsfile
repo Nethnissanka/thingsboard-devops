@@ -61,7 +61,7 @@ pipeline {
                         error("❌ Upgrade verification failed")
                     }
                     echo "✅ Upgrade to v${env.LATEST_VERSION} verified successfully"
-		    echo "Thingsboard is in {env.CURRENT_VERSION}"
+		    echo "Thingsboard is in ${env.CURRENT_VERSION}"
                 }
             }
         }
