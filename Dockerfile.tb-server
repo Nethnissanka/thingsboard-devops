@@ -1,0 +1,17 @@
+# Dockerfile.tb-server
+FROM rockylinux:9
+
+RUN dnf install -y wget rpm java-17-openjdk && dnf clean all
+
+# Copy your ThingsBoard RPM into the image (make sure it's in the same directory)
+COPY thingsboard-*.rpm /tmp/
+
+# Install ThingsBoard inside container
+RUN rpm -Uvh /tmp/thingsboard-*.rpm && \
+    /usr/share/thingsboard/bin/install/install.sh --loadDemo && \
+    rm -f /tmp/thingsboard-*.rpm
+
+EXPOSE 8080
+
+#CMD ["/usr/share/thingsboard/bin/thingsboard"]
+CMD ["java", "-jar", "/usr/share/thingsboard/bin/thingsboard.jar"]
