@@ -42,7 +42,7 @@ pipeline {
                 script {
                     // Manually set the version instead of fetching from GitHub
                     echo '🔧 Manually setting ThingsBoard version to 4.0 …'
-                    env.LATEST_VERSION = '4.0'
+                    env.LATEST_VERSION = '4.0.0'
                     echo "✅ Manually set ThingsBoard version: ${env.LATEST_VERSION}"
                 }
             }
