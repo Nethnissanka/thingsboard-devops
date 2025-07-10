@@ -1,0 +1,17 @@
+# Dockerfile.tb-server-4.0.1
+FROM rockylinux:9
+
+# Install dependencies
+RUN dnf install -y wget rpm java-17-openjdk net-tools && dnf clean all
+
+WORKDIR /tmp
+
+# Copy RPM (make sure you download the 4.0.1 RPM to this directory first!)
+COPY thingsboard-4.0.1.rpm .
+
+# Install ThingsBoard
+RUN rpm -Uvh thingsboard-4.0.1.rpm && rm -f thingsboard-4.0.1.rpm
+
+EXPOSE 8080
+
+CMD ["java", "-jar", "/usr/share/thingsboard/bin/thingsboard.jar"]

@@ -1,6 +1,15 @@
-FROM thingsboard-server:latest
-COPY thingsboard-4.0.rpm /tmp/
-RUN rpm -Uvh /tmp/thingsboard-4.0.rpm \
- && /usr/share/thingsboard/bin/install/upgrade.sh \
- && rm /tmp/thingsboard-4.0.rpm
-CMD ["java","-jar","/usr/share/thingsboard/bin/thingsboard.jar"]
+# Dockerfile.tb-upgrader
+FROM rockylinux:9
+
+RUN dnf install -y wget rpm java-17-openjdk net-tools && dnf clean all
+
+WORKDIR /tmp
+
+# Copy upgrade RPM
+COPY thingsboard-4.0.1.rpm .
+
+# Install TB 4.0.1 over existing one
+RUN rpm -Uvh thingsboard-4.0.1.rpm && rm -f thingsboard-4.0.1.rpm
+
+# Run the upgrade script (will connect to your existing PostgreSQL DB)
+CMD ["/usr/share/thingsboard/bin/install/upgrade.sh"]
