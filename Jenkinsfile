@@ -5,6 +5,7 @@ pipeline {
         PACKAGE_REPO      = "https://github.com/thingsboard/thingsboard/releases/download"
         SERVER_COMPOSE    = "docker-compose.yml"
         UPGRADE_COMPOSE   = "docker-compose.upgrade.yml"
+        MANUAL_VERSION    = ""  // 🔧 Set to e.g., "4.0.1" to override auto-detect
     }
 
     stages {
@@ -20,7 +21,24 @@ pipeline {
             }
         }
 
+        stage('Set Manual Version (Optional)') {
+            steps {
+                script {
+                    if (env.MANUAL_VERSION?.trim()) {
+                        env.LATEST_VERSION = env.MANUAL_VERSION.trim()
+                        echo "🔧 Manual version set to: ${env.LATEST_VERSION}"
+                        env.SKIP_FETCH_LATEST = "true"
+                    } else {
+                        env.SKIP_FETCH_LATEST = "false"
+                    }
+                }
+            }
+        }
+
         stage('Fetch Latest GitHub Version') {
+            when {
+                expression { env.SKIP_FETCH_LATEST != "true" }
+            }
             steps {
                 script {
                     echo '🌐 Fetching latest release from GitHub...'
