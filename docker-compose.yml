@@ -4,8 +4,8 @@ services:
   tb-server:
     build:
       context: .
-      dockerfile: Dockerfile.tb-server-4.0.1
-    image: thingsboard-tb-server:4.0.1
+      dockerfile: Dockerfile.tb-server
+    image: thingsboard-tb-server:latest
     container_name: tb-server
     ports:
       - "8080:8080"
@@ -15,3 +15,4 @@ services:
       - SPRING_DATASOURCE_PASSWORD=123456
       - TB_QUEUE_TYPE=in-memory
     restart: unless-stopped
+

@@ -10,7 +10,7 @@ RUN dnf install -y wget rpm java-17-openjdk net-tools && dnf clean all
 COPY thingsboard.rpm .
 
 # Install ThingsBoard
-RUN rpm -Uvh thingsboard.rpm && rm -f thingsboard.rpm
+RUN rpm -Uvh thingsboard.rpm 
 
 # Expose default port
 EXPOSE 8080
