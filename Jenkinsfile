@@ -5,7 +5,7 @@ pipeline {
         PACKAGE_REPO      = "https://github.com/thingsboard/thingsboard/releases/download"
         SERVER_COMPOSE    = "docker-compose.yml"
         UPGRADE_COMPOSE   = "docker-compose.upgrade.yml"
-        MANUAL_VERSION    = ""  // 🔧 Set to e.g., "4.0.1" to override auto-detect
+        MANUAL_VERSION    = "4.0.1"  // 🔧 Set to e.g., "4.0.1" to override auto-detect
     }
 
     stages {
@@ -121,7 +121,40 @@ pipeline {
             }
         }
 
-       
+        stage('Build Upgrade Container') {
+            when {
+                expression { env.UPGRADE_REQUIRED == "true" }
+            }
+            steps {
+                echo "🔧 Building Docker upgrade container"
+                sh "docker compose -f ${env.UPGRADE_COMPOSE} build"
+                echo "🔧 Starting upgrade container"
+            }
+        }
+
+        stage('Run Upgrade') {
+            when {
+                expression { env.UPGRADE_REQUIRED == "true" }
+            }
+            steps {
+                echo "🚀 Running upgrade container (will auto-exit after upgrade)"
+                // Run the upgrade container and wait for it to finish
+                sh "docker compose -f ${env.UPGRADE_COMPOSE} up --abort-on-container-exit"
+                echo "🔄 Upgrade container finished"
+            }
+        }
+
+        stage('Rebuild Server Container') {
+            when {
+                expression { env.UPGRADE_REQUIRED == "true" }
+            }
+            steps {
+                echo "🔄 Rebuilding updated server container"
+                sh "docker compose -f ${env.SERVER_COMPOSE} build"
+                echo "🔄 Rebuilding complete"
+            }
+        }
+
         stage('Start ThingsBoard Server') {
             when {
                 expression { env.UPGRADE_REQUIRED == "true" }
@@ -152,10 +185,7 @@ pipeline {
                     echo "🔍 Waiting for ThingsBoard to be ready"
                     sh "docker compose -f ${env.SERVER_COMPOSE} logs tb-server || true"
                     sleep 10 // Additional wait time for ThingsBoard to be fully operational
-                    echo "🔍 Checking HTTP status of ThingsBoard"
-                    sleep 10 // Allow some time for the server to start
-                    echo "🔍 Checking HTTP status of ThingsBoard"
-                    sh "docker compose -f ${env.SERVER_COMPOSE} logs tb-server || true"
+                   
 
                     echo "🔍 Verifying application is up"
                     // Check if ThingsBoard is responding on HTTP
