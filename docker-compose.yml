@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.tb-server
-    image: thingsboard-tb-server:latest
+    image: thingsboard-tb-server
     container_name: tb-server
     ports:
       - "8080:8080"

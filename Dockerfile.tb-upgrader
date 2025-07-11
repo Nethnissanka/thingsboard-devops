@@ -1,15 +1,13 @@
-# Dockerfile.tb-upgrader
 FROM rockylinux:9
 
 RUN dnf install -y wget rpm java-17-openjdk net-tools && dnf clean all
 
 WORKDIR /tmp
 
-# Copy the downloaded RPM from the host (Jenkins downloads it)
 COPY thingsboard.rpm .
 
-# Install TB over existing one
 RUN rpm -Uvh thingsboard.rpm && rm -f thingsboard.rpm
 
-# Run the upgrade script (this connects to the existing PostgreSQL DB)
+# Important: run upgrade script directly, do NOT run java
 CMD ["/usr/share/thingsboard/bin/install/upgrade.sh"]
+

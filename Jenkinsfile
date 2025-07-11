@@ -161,7 +161,11 @@ pipeline {
             }
             steps {
                 echo "🚀 Starting upgraded ThingsBoard server"
-                sh "docker compose -f ${env.SERVER_COMPOSE} up -d"
+                sh '''
+		    docker rm -f tb-server || true
+    		    docker compose up -d --remove-orphans
+		'''
+
                 echo "🚀 ThingsBoard server started"
 
             }
