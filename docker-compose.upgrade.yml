@@ -5,10 +5,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.tb-upgrader
-    container_name: tb-upgrader-4.0.1
+    container_name: tb-upgrader
+    volumes:
+      - /etc/thingsboard:/etc/thingsboard
+      - /usr/share/thingsboard:/usr/share/thingsboard
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://172.17.0.1:5432/thingsboard
       - SPRING_DATASOURCE_USERNAME=nethmi
       - SPRING_DATASOURCE_PASSWORD=123456
-      - TB_QUEUE_TYPE=in-memory
-    restart: "no"

@@ -5,11 +5,11 @@ RUN dnf install -y wget rpm java-17-openjdk net-tools && dnf clean all
 
 WORKDIR /tmp
 
-# Copy upgrade RPM
-COPY thingsboard-4.0.1.rpm .
+# Copy the downloaded RPM from the host (Jenkins downloads it)
+COPY thingsboard.rpm .
 
-# Install TB 4.0.1 over existing one
-RUN rpm -Uvh thingsboard-4.0.1.rpm && rm -f thingsboard-4.0.1.rpm
+# Install TB over existing one
+RUN rpm -Uvh thingsboard.rpm && rm -f thingsboard.rpm
 
-# Run the upgrade script (will connect to your existing PostgreSQL DB)
+# Run the upgrade script (this connects to the existing PostgreSQL DB)
 CMD ["/usr/share/thingsboard/bin/install/upgrade.sh"]
