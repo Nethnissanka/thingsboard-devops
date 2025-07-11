@@ -5,7 +5,7 @@ pipeline {
         PACKAGE_REPO      = "https://github.com/thingsboard/thingsboard/releases/download"
         SERVER_COMPOSE    = "docker-compose.yml"
         UPGRADE_COMPOSE   = "docker-compose.upgrade.yml"
-        MANUAL_VERSION    = "4.0.1"  // 🔧 Set to e.g., "4.0.1" to override auto-detect
+        MANUAL_VERSION    = "4.0.2"  // 🔧 Set to e.g., "4.0.1" to override auto-detect
     }
 
     stages {
