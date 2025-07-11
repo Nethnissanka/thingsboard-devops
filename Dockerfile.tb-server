@@ -1,23 +1,21 @@
-# Dockerfile.tb-server
-
+# Use Rocky Linux as the base image
 FROM rockylinux:9
 
+# Set working directory
 WORKDIR /tmp
 
+# Install required tools: wget, rpm, Java 17, and net-tools (optional for networking)
 RUN dnf install -y wget rpm java-17-openjdk net-tools && dnf clean all
 
-# ✅ Use version-agnostic name
+# Copy the downloaded ThingsBoard RPM (make sure it's renamed to 'thingsboard.rpm' by Jenkins)
 COPY thingsboard.rpm .
 
-# Install ThingsBoard
-RUN rpm -Uvh thingsboard.rpm 
+# Install the RPM package
+RUN rpm -Uvh thingsboard.rpm
 
-# Expose default port
+# Expose the default ThingsBoard port
 EXPOSE 8080
 
-# Default command: run the ThingsBoard server
-CMD ["java", "-jar", "/usr/share/thingsboard/bin/thingsboard.jar"]
-
-
-# Add other setup...
+# Default command (optional)
+CMD ["/usr/share/thingsboard/bin/thingsboard.sh", "start"]
 
