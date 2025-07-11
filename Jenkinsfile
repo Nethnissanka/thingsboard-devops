@@ -152,7 +152,7 @@ pipeline {
                     echo "🔍 Waiting for ThingsBoard to be ready"
                     sh "docker compose -f ${env.SERVER_COMPOSE} logs tb-server || true"
                     sleep 10 // Additional wait time for ThingsBoard to be fully operational
-                    echo "🔍 Checking HTTP status of ThingsBoard
+                    echo "🔍 Checking HTTP status of ThingsBoard"
                     sleep 10 // Allow some time for the server to start
                     echo "🔍 Checking HTTP status of ThingsBoard"
                     sh "docker compose -f ${env.SERVER_COMPOSE} logs tb-server || true"
