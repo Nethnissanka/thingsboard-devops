@@ -165,6 +165,14 @@ trpipeline {
             }
         }
 
+        stage('Cleanup Existing Containers') {
+            steps {
+                echo '🧹 Cleaning up existing containers'
+                sh 'docker compose down --remove-orphans || true'
+                sh 'docker system prune -f || true'
+            }
+        }
+
         stage('Start ThingsBoard Server') {
             when {
                 expression { env.UPGRADE_REQUIRED == "true" }
