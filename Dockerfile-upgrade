@@ -1,0 +1,14 @@
+FROM rockylinux:9
+
+WORKDIR /tmp
+
+RUN dnf install -y wget rpm java-17-openjdk net-tools && dnf clean all
+
+# Jenkins will copy in the RPM
+COPY thingsboard.rpm .
+
+RUN rpm -Uvh thingsboard.rpm
+
+CMD ["/usr/share/thingsboard/bin/install/upgrade-tb.sh"]
+
+

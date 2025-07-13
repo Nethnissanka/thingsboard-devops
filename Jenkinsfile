@@ -5,25 +5,26 @@ pipeline {
         PACKAGE_REPO      = "https://github.com/thingsboard/thingsboard/releases/download"
         SERVER_COMPOSE    = "docker-compose.yml"
         UPGRADE_COMPOSE   = "docker-compose.upgrade.yml"
-        MANUAL_VERSION    = "4.0.2"  // 🔧 Set to e.g., "4.0.1" to override auto-detect
+        CURRENT_VERSION   = "4.0.0"  // Will be set dynamically
+        MANUAL_VERSION    = "4.0.0"  // 🔧 Set to e.g., "4.0.1" to override auto-detect
     }
 
     stages {
 
-        stage('Detect Current Installed Version') {
-            steps {
-                script {
-                    echo '🔍 Detecting current ThingsBoard Docker image tag...'
-                    def image = sh(script: "docker inspect tb-server --format '{{ index .Config.Image }}'", returnStdout: true).trim()
-                    def tag = image.contains(":") ? image.split(":")[1] : "unknown"
-                    env.CURRENT_VERSION = tag
-                    if (env.CURRENT_VERSION == "unknown") {
-                        error '❌ Could not determine current version!'
-                    }
-                    echo "📦 Current version: ${env.CURRENT_VERSION}"
-                }
-            }
-        }
+        // stage('Detect Current Installed Version') {
+        //     steps {
+        //         script {
+        //             echo '🔍 Detecting current ThingsBoard Docker image tag...'
+        //             def image = sh(script: "docker inspect tb-server --format '{{ index .Config.Image }}'", returnStdout: true).trim()
+        //             def tag = image.contains(":") ? image.split(":")[1] : "unknown"
+        //             env.CURRENT_VERSION = tag
+        //             if (env.CURRENT_VERSION == "unknown") {
+        //                 error '❌ Could not determine current version!'
+        //             }
+        //             echo "📦 Current version: ${env.CURRENT_VERSION}"
+        //         }
+        //     }
+        // }
 
         stage('Set Manual Version (Optional)') {
             steps {
@@ -127,7 +128,7 @@ pipeline {
             }
             steps {
                 echo "🔧 Building Docker upgrade container"
-                sh "docker compose -f ${env.UPGRADE_COMPOSE} build"
+                sh "docker compose -f ${env.UPGRADE_COMPOSE} build --no-cache"
                 echo "🔧 Starting upgrade container"
             }
         }
@@ -150,7 +151,7 @@ pipeline {
             }
             steps {
                 echo "🔄 Rebuilding updated server container"
-                sh "docker compose -f ${env.SERVER_COMPOSE} build"
+                sh "docker compose -f ${env.SERVER_COMPOSE} build --no-cache"
                 echo "🔄 Rebuilding complete"
             }
         }
@@ -161,10 +162,10 @@ pipeline {
             }
             steps {
                 echo "🚀 Starting upgraded ThingsBoard server"
+                // docker rm -f tb-server || true
                 sh '''
-		    docker rm -f tb-server || true
-    		    docker compose up -d --remove-orphans
-		'''
+                    docker compose up -d --remove-orphans
+                '''
 
                 echo "🚀 ThingsBoard server started"
 
@@ -189,7 +190,7 @@ pipeline {
                     echo "🔍 Waiting for ThingsBoard to be ready"
                     sh "docker compose -f ${env.SERVER_COMPOSE} logs tb-server || true"
                     sleep 10 // Additional wait time for ThingsBoard to be fully operational
-                   
+
 
                     echo "🔍 Verifying application is up"
                     // Check if ThingsBoard is responding on HTTP
@@ -237,4 +238,5 @@ pipeline {
         }
     }
 }
+
 
