@@ -1,4 +1,4 @@
-pipeline {
+trpipeline {
     agent any
 
     environment {
@@ -93,7 +93,7 @@ pipeline {
         }
         stage('Cleanup') {
             when {
-                expression { env.UPGRADE_REQUIRED == "false" }
+                expression { env.UPGRADE_REQUIRED == "true" }
             }
             steps {
                 echo '🧹 Cleaning up RPMs …'
