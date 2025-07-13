@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-4.0.0
-    image: thingsboard-4.0.1
+    image: thingsboard-4.0.0
     container_name: thingsboard-testing-server
     ports:
       - "8080:8080"
@@ -14,5 +14,6 @@ services:
       - SPRING_DATASOURCE_USERNAME=nethmi
       - SPRING_DATASOURCE_PASSWORD=123456
       - TB_QUEUE_TYPE=in-memory
+      - SECURITY_OAUTH2_ENABLED=false
     restart: unless-stopped
 
