@@ -91,6 +91,15 @@ pipeline {
                 echo "✅ Skipping upgrade — Already latest version."
             }
         }
+        stage('Cleanup') {
+            when {
+                expression { env.UPGRADE_REQUIRED == "false" }
+            }
+            steps {
+                echo '🧹 Cleaning up RPMs …'
+                sh "rm -f thingsboard-*.rpm"
+            }
+        }
 
         stage('Download RPM') {
             when {
