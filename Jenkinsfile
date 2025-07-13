@@ -165,13 +165,19 @@ trpipeline {
             }
         }
 
-        stage('Cleanup Existing Containers') {
+        stage('Stop Current Server') {
+            when {
+                expression { env.UPGRADE_REQUIRED == "true" }
+            }
             steps {
-                echo '🧹 Cleaning up existing containers'
-                sh 'docker compose down --remove-orphans || true'
-                sh 'docker system prune -f || true'
+                echo "🛑 Stopping existing ThingsBoard container"
+                sh """
+                    docker compose -f ${env.SERVER_COMPOSE} down || true
+                    docker ps -a | grep thingsboard-4-0-0 && docker rm -f thingsboard-4-0-0 || true
+                """
             }
         }
+
 
         stage('Start ThingsBoard Server') {
             when {
