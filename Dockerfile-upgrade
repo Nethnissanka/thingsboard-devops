@@ -9,6 +9,6 @@ COPY thingsboard.rpm .
 
 RUN rpm -Uvh thingsboard.rpm
 
-CMD ["/usr/share/thingsboard/bin/install/upgrade-tb.sh"]
+CMD ["/usr/share/thingsboard/bin/install/upgrade.sh"]
 
 
