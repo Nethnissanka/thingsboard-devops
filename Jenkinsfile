@@ -127,7 +127,13 @@ pipeline {
             }
             steps {
                 echo "🛑 Stopping existing ThingsBoard container"
-                sh "docker compose -f ${env.SERVER_COMPOSE} down || true"
+                sh """
+                docker compose -f ${env.SERVER_COMPOSE} down || true
+                docker stop thingsboard-testing-server || true
+                docker rm -f thingsboard-testing-server || true
+                docker container prune -f
+                docker network prune -f
+            """
             }
         }
 
@@ -177,6 +183,12 @@ pipeline {
                 echo "🚀 Starting upgraded ThingsBoard server"
                 // docker rm -f tb-server || true
                 sh '''
+                   
+                    docker stop thingsboard-testing-server || true
+                    docker rm -f thingsboard-testing-server || true
+            
+                    docker container prune -f
+            
                     docker compose up -d --remove-orphans
                 '''
 
