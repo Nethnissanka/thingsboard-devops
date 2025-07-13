@@ -151,7 +151,7 @@ pipeline {
                 // Run the upgrade container and wait for it to finish
                 sh """
                 docker compose -f ${env.UPGRADE_COMPOSE} up --abort-on-container-exit
-                docker-compose -f ${env.UPGRADE_COMPOSE} down
+                docker compose -f ${env.UPGRADE_COMPOSE} down
                 """
                 echo "🔄 Upgrade container finished"
             }
