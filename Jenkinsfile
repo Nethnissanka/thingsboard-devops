@@ -149,7 +149,10 @@ pipeline {
             steps {
                 echo "🚀 Running upgrade container (will auto-exit after upgrade)"
                 // Run the upgrade container and wait for it to finish
-                sh "docker compose -f ${env.UPGRADE_COMPOSE} up --abort-on-container-exit"
+                sh """
+                docker compose -f ${env.UPGRADE_COMPOSE} up --abort-on-container-exit
+                docker-compose -f ${env.UPGRADE_COMPOSE} down
+                """
                 echo "🔄 Upgrade container finished"
             }
         }
@@ -162,19 +165,6 @@ pipeline {
                 echo "🔄 Rebuilding updated server container"
                 sh "docker compose -f ${env.SERVER_COMPOSE} build --no-cache"
                 echo "🔄 Rebuilding complete"
-            }
-        }
-
-        stage('Stop Current Server') {
-            when {
-                expression { env.UPGRADE_REQUIRED == "true" }
-            }
-            steps {
-                echo "🛑 Stopping existing ThingsBoard container"
-                sh """
-                    docker compose -f ${env.SERVER_COMPOSE} down || true
-                    docker ps -a | grep thingsboard-4-0-0 && docker rm -f thingsboard-4-0-0 || true
-                """
             }
         }
 
